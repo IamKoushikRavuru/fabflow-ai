@@ -42,6 +42,9 @@ _DATABASE_URL: str = os.getenv(
     "DATABASE_URL",
     "sqlite:///./fabflow_dev.db",
 )
+if _DATABASE_URL.startswith("postgres://"):
+    _DATABASE_URL = _DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 
 # ---------------------------------------------------------------------------
 # Engine factory
