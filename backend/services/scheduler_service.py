@@ -340,7 +340,7 @@ class SchedulerService:
 
         db_machines_filtered = [m for m in db_machines if m.id in needed_machine_ids]
         logger.info(
-            "Machine filter: %d total active → %d needed by scheduled ops",
+            "Machine filter: %d total active -> %d needed by scheduled ops",
             len(db_machines), len(db_machines_filtered),
         )
 

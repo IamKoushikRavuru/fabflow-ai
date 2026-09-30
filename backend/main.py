@@ -71,6 +71,13 @@ from models.models import (
 # Logging
 # ---------------------------------------------------------------------------
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
@@ -472,7 +479,8 @@ app.add_middleware(
 
 API_PREFIX = "/api"
 
-app.include_router(health_router, prefix=API_PREFIX)
+app.include_router(health_router)  # /health for Render & container healthchecks
+app.include_router(health_router, prefix=API_PREFIX)  # /api/health
 app.include_router(machines_router, prefix=API_PREFIX)
 app.include_router(recipes_router, prefix=API_PREFIX)
 app.include_router(setup_router, prefix=API_PREFIX)
