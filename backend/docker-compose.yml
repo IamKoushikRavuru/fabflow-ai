@@ -1,0 +1,87 @@
+# ============================================================
+# FabFlow AI — Docker Compose
+# ============================================================
+# Services:
+#   postgres  — PostgreSQL 16 database
+#   backend   — FastAPI application (FabFlow AI)
+#
+# Usage:
+#   docker-compose up --build          # first run
+#   docker-compose up -d               # detached mode
+#   docker-compose logs -f backend     # tail logs
+#   docker-compose down -v             # teardown + remove volumes
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # PostgreSQL 16
+  # ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: fabflow_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fabflow_db
+      POSTGRES_USER: fabflow_user
+      POSTGRES_PASSWORD: fabflow_secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"          # expose for local psql / pgAdmin access
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fabflow_user -d fabflow_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - fabflow_net
+
+  # ──────────────────────────────────────────────────────────
+  # FabFlow AI Backend
+  # ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fabflow_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://fabflow_user:fabflow_secret@postgres:5432/fabflow_db
+      SQL_ECHO: "false"
+      DB_POOL_SIZE: "10"
+      DB_MAX_OVERFLOW: "20"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source for hot-reload during development (remove in prod)
+      - ./:/app:ro
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - fabflow_net
+
+# ──────────────────────────────────────────────────────────
+# Named volumes
+# ──────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+
+# ──────────────────────────────────────────────────────────
+# Networks
+# ──────────────────────────────────────────────────────────
+networks:
+  fabflow_net:
+    driver: bridge
